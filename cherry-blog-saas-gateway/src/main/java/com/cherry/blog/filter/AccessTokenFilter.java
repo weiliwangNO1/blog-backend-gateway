@@ -1,5 +1,6 @@
 package com.cherry.blog.filter;
 
+import com.cherry.blog.redis.AuthRedisService;
 import com.nimbusds.jose.JWSObject;
 import net.minidev.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -26,8 +27,8 @@ import java.text.ParseException;
 /**
  *
  * 用于验证请求头访问令牌是否有效，通过token中的jti查询redis中是否存在
- * @since  2021-1-27
- * @author wwl
+ * @author weili.wang
+ * @date 2024/1/7
  */
 @Component
 public class AccessTokenFilter implements GlobalFilter, Ordered {
@@ -35,7 +36,7 @@ public class AccessTokenFilter implements GlobalFilter, Ordered {
     private static Logger logger = LoggerFactory.getLogger(AccessTokenFilter.class);
 
     @Autowired
-    private RedisTemplate redisTemplate;
+    private AuthRedisService authRedisService;
 
     /**
      * 验证传递的访问令牌是否有效。
@@ -63,7 +64,8 @@ public class AccessTokenFilter implements GlobalFilter, Ordered {
             JSONObject jsonObject = jwsObject.getPayload().toJSONObject();
             // 查询 redis 是否存在，不存在则过期。
             String jti = jsonObject.get("jti").toString();
-            Object value = redisTemplate.opsForValue().get(jti);
+            Object value = authRedisService.getValue(jti);
+            //Object value = redisTemplate.opsForValue().get(jti);
             if (value == null) {
                 logger.info("令牌已过期 {}", token);
                 message = "您的身份已过期，请重新认证！";
